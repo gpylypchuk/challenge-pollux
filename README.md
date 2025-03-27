@@ -1,88 +1,119 @@
 # Wallet Management Application
 
-A full-stack web application for creating and managing cryptocurrency wallets. Built with Angular (frontend) and NestJS (backend).
+A secure wallet management application built with Angular, NestJS, and Tailwind CSS.
 
 ## Features
 
-- Secure wallet creation with private key management
-- HD wallet support
-- Real-time token balance viewing
-- Secure token transfer functionality
-- User-friendly interface
-- Responsive design
+- Create and manage HD wallets
+- Secure private key storage with password encryption
+- Responsive and user-friendly interface
+- RESTful API for wallet operations
 
 ## Prerequisites
 
-- Node.js (v18 or higher)
-- npm (v8 or higher)
-- Angular CLI
-- NestJS CLI
+- Node.js (v14 or later)
+- npm (v6 or later)
 
 ## Project Structure
 
 ```
-wallet-management-app/
-├── backend/          # NestJS backend application
-├── frontend/         # Angular frontend application
-├── package.json      # Root package.json for managing the monorepo
-└── README.md        # Project documentation
+challenge-pollux/
+├── frontend/          # Angular frontend application
+└── backend/          # NestJS backend application
 ```
 
 ## Getting Started
 
-1. Clone the repository:
+### Backend Setup
+
+1. Navigate to the backend directory:
 
    ```bash
-   git clone <repository-url>
-   cd wallet-management-app
+   cd backend/wallet-backend
    ```
 
 2. Install dependencies:
 
    ```bash
-   npm run install:all
+   npm install
    ```
 
-3. Start the development servers:
+3. Start the development server:
+   ```bash
+   npm run start:dev
+   ```
 
-   Backend:
+The backend will be available at `http://localhost:3000`.
+
+### Frontend Setup
+
+1. Navigate to the frontend directory:
 
    ```bash
-   npm run start:backend
+   cd frontend/wallet-frontend
    ```
 
-   Frontend:
+2. Install dependencies:
 
    ```bash
-   npm run start:frontend
+   npm install
    ```
 
-4. Open your browser and navigate to:
-   - Frontend: http://localhost:4200
-   - Backend API: http://localhost:3000
+3. Start the development server:
+   ```bash
+   npm start
+   ```
+
+The frontend will be available at `http://localhost:4200`.
+
+## API Endpoints
+
+### Wallets
+
+- `POST /api/wallets/create` - Create a new wallet
+
+  - Body: `{ name: string, password: string }`
+
+- `GET /api/wallets` - Get all wallets
+
+- `GET /api/wallets/:id` - Get a specific wallet
+
+- `DELETE /api/wallets/:id` - Delete a wallet
+
+## Security Considerations
+
+- Private keys are encrypted with user-provided passwords
+- HD wallets are used for better key management
+- No private keys are stored in plain text
+- Passwords are never stored, only used for encryption/decryption
 
 ## Development
 
-- The frontend application is built with Angular and includes routing and SCSS styling.
-- The backend application is built with NestJS and provides RESTful APIs.
-- Both applications include testing setups with Jest.
+### Frontend
 
-## Scripts
+The frontend is built with:
 
-- `npm run install:all` - Install dependencies for all applications
-- `npm run start:backend` - Start the backend development server
-- `npm run start:frontend` - Start the frontend development server
-- `npm run build` - Build both applications
-- `npm run test` - Run tests for both applications
+- Angular 17
+- Tailwind CSS for styling
+- Angular Reactive Forms for form handling
+- HTTP Client for API communication
+
+### Backend
+
+The backend is built with:
+
+- NestJS
+- ethers.js for wallet operations
+- In-memory storage (can be extended to use a database)
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
 
 ## License
 
-This project is licensed under the ISC License.
+This project is licensed under the MIT License.

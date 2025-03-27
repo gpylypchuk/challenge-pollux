@@ -1,0 +1,28 @@
+.sidenav-container {
+  height: calc(100vh - 64px);
+}
+
+mat-toolbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+mat-sidenav {
+  width: 250px;
+}
+
+.content {
+  padding: 20px;
+  margin-top: 64px;
+}
+
+.active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
