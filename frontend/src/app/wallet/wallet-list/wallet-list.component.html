@@ -7,7 +7,16 @@
     </button>
   </div>
 
-  <div class="wallets-grid">
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <mat-icon color="warn">error</mat-icon>
+    <p>{{ error }}</p>
+  </div>
+
+  <div *ngIf="!loading && !error" class="wallets-grid">
     <mat-card *ngFor="let wallet of wallets" class="wallet-card">
       <mat-card-header>
         <mat-card-title>{{ wallet.name }}</mat-card-title>
@@ -17,6 +26,10 @@
         <div class="balance">
           <span class="label">Balance:</span>
           <span class="amount">{{ wallet.balance }}</span>
+        </div>
+        <div class="address">
+          <span class="label">Address:</span>
+          <span class="value">{{ wallet.address }}</span>
         </div>
       </mat-card-content>
       <mat-card-actions>

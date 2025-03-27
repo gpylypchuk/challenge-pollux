@@ -13,6 +13,35 @@
     }
   }
 
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+  }
+
+  .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: #f44336;
+    text-align: center;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 16px;
+    }
+  }
+
   .wallets-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -29,19 +58,29 @@
       padding: 16px;
     }
 
-    .balance {
+    .balance,
+    .address {
       display: flex;
       align-items: center;
       gap: 8px;
+      margin-bottom: 8px;
 
       .label {
         color: #666;
+        min-width: 80px;
       }
 
       .amount {
         font-size: 1.2em;
         font-weight: 500;
         color: #2196f3;
+      }
+
+      .value {
+        font-family: monospace;
+        font-size: 0.9em;
+        color: #333;
+        word-break: break-all;
       }
     }
 

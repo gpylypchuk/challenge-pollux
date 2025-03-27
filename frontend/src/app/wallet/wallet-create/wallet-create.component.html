@@ -1,1 +1,71 @@
-<p>wallet-create works!</p>
+<div class="wallet-create">
+  <div class="header">
+    <h1>Create New Wallet</h1>
+    <p class="subtitle">
+      Create a new HD wallet for secure cryptocurrency storage
+    </p>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <mat-icon color="warn">error</mat-icon>
+    <p>{{ error }}</p>
+  </div>
+
+  <form
+    *ngIf="!loading && !error"
+    [formGroup]="walletForm"
+    (ngSubmit)="onSubmit()"
+    class="wallet-form"
+  >
+    <mat-form-field appearance="outline" class="form-field">
+      <mat-label>Wallet Name</mat-label>
+      <input matInput formControlName="name" placeholder="Enter wallet name" />
+      <mat-error *ngIf="walletForm.get('name')?.hasError('required')">
+        Wallet name is required
+      </mat-error>
+      <mat-error *ngIf="walletForm.get('name')?.hasError('minlength')">
+        Wallet name must be at least 3 characters
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="form-field">
+      <mat-label>Wallet Type</mat-label>
+      <mat-select formControlName="type">
+        <mat-option value="BTC">Bitcoin (BTC)</mat-option>
+        <mat-option value="ETH">Ethereum (ETH)</mat-option>
+      </mat-select>
+      <mat-error *ngIf="walletForm.get('type')?.hasError('required')">
+        Wallet type is required
+      </mat-error>
+    </mat-form-field>
+
+    <div class="form-actions">
+      <button mat-button type="button" routerLink="/wallets">Cancel</button>
+      <button
+        mat-raised-button
+        color="primary"
+        type="submit"
+        [disabled]="!walletForm.valid || loading"
+      >
+        Create Wallet
+      </button>
+    </div>
+  </form>
+
+  <div class="info-section">
+    <h2>About HD Wallets</h2>
+    <p>
+      Hierarchical Deterministic (HD) wallets provide enhanced security and
+      convenience:
+    </p>
+    <ul>
+      <li>Generate unlimited addresses from a single seed</li>
+      <li>Backup your entire wallet with a single seed phrase</li>
+      <li>Securely manage multiple cryptocurrencies</li>
+    </ul>
+  </div>
+</div>
