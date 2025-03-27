@@ -1,119 +1,140 @@
-# Wallet Management Application
+# Cryptocurrency Wallet Manager
 
-A secure wallet management application built with Angular, NestJS, and Tailwind CSS.
+A full-stack application for managing cryptocurrency wallets, built with Angular and NestJS.
 
 ## Features
 
-- Create and manage HD wallets
-- Secure private key storage with password encryption
-- Responsive and user-friendly interface
-- RESTful API for wallet operations
+- Create and manage Bitcoin (BTC) and Ethereum (ETH) wallets
+- Hierarchical Deterministic (HD) wallet support
+- Real-time balance tracking
+- Support for ERC-20 tokens (ETH wallets)
+- Secure private key storage with encryption
+- User-friendly interface with Material Design
+- Responsive design for all devices
 
 ## Prerequisites
 
-- Node.js (v14 or later)
-- npm (v6 or later)
+- Node.js (v16 or later)
+- PostgreSQL
+- Angular CLI
+- NestJS CLI
 
-## Project Structure
+## Installation
 
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/wallet-manager.git
+cd wallet-manager
 ```
-challenge-pollux/
-├── frontend/          # Angular frontend application
-└── backend/          # NestJS backend application
+
+2. Install backend dependencies:
+
+```bash
+cd backend
+npm install
 ```
 
-## Getting Started
+3. Install frontend dependencies:
 
-### Backend Setup
+```bash
+cd ../frontend
+npm install
+```
 
-1. Navigate to the backend directory:
+4. Create a PostgreSQL database:
 
-   ```bash
-   cd backend/wallet-backend
-   ```
+```bash
+createdb wallet_manager
+```
 
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run start:dev
-   ```
-
-The backend will be available at `http://localhost:3000`.
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
-
-   ```bash
-   cd frontend/wallet-frontend
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm start
-   ```
-
-The frontend will be available at `http://localhost:4200`.
-
-## API Endpoints
-
-### Wallets
-
-- `POST /api/wallets/create` - Create a new wallet
-
-  - Body: `{ name: string, password: string }`
-
-- `GET /api/wallets` - Get all wallets
-
-- `GET /api/wallets/:id` - Get a specific wallet
-
-- `DELETE /api/wallets/:id` - Delete a wallet
-
-## Security Considerations
-
-- Private keys are encrypted with user-provided passwords
-- HD wallets are used for better key management
-- No private keys are stored in plain text
-- Passwords are never stored, only used for encryption/decryption
+5. Configure environment variables:
+   - Create a `.env` file in the backend directory with:
+     ```
+     DB_HOST=localhost
+     DB_PORT=5432
+     DB_USERNAME=your_username
+     DB_PASSWORD=your_password
+     DB_NAME=wallet_manager
+     ENCRYPTION_KEY=your_secure_encryption_key
+     ```
 
 ## Development
 
-### Frontend
+1. Start the backend server:
 
-The frontend is built with:
+```bash
+cd backend
+npm run start:dev
+```
 
-- Angular 17
-- Tailwind CSS for styling
-- Angular Reactive Forms for form handling
-- HTTP Client for API communication
+2. Start the frontend development server:
 
-### Backend
+```bash
+cd frontend
+ng serve
+```
 
-The backend is built with:
+3. Access the application:
+   - Frontend: http://localhost:4200
+   - Backend API: http://localhost:3000
 
-- NestJS
-- ethers.js for wallet operations
-- In-memory storage (can be extended to use a database)
+## API Documentation
+
+### Wallet Endpoints
+
+#### Create Wallet
+
+```http
+POST /api/wallets
+Content-Type: application/json
+
+{
+  "name": "My Wallet",
+  "type": "BTC" | "ETH"
+}
+```
+
+#### Get Wallet
+
+```http
+GET /api/wallets/:id
+```
+
+#### Get All Wallets
+
+```http
+GET /api/wallets
+```
+
+#### Send Transaction
+
+```http
+POST /api/wallets/:id/transactions
+Content-Type: application/json
+
+{
+  "amount": "0.1",
+  "recipientAddress": "0x..."
+}
+```
+
+## Security Features
+
+- Private keys are encrypted using AES-256-GCM
+- HD wallet support for better key management
+- Secure storage of sensitive data
+- Input validation and sanitization
+- Error handling and logging
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.

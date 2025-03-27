@@ -1,46 +1,81 @@
-<div class="wallet-list">
-  <div class="header">
-    <h1>My Wallets</h1>
-    <button mat-raised-button color="primary" routerLink="/wallets/create">
-      <mat-icon>add</mat-icon>
-      New Wallet
-    </button>
+<div class="container mx-auto p-4">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">My Wallets</h1>
+    <div class="flex gap-2">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="refreshBalances()"
+        [disabled]="refreshing"
+      >
+        <mat-icon>refresh</mat-icon>
+        <span class="ml-2">Refresh</span>
+      </button>
+      <button
+        mat-raised-button
+        color="accent"
+        (click)="openCreateWalletDialog()"
+      >
+        <mat-icon>add</mat-icon>
+        <span class="ml-2">New Wallet</span>
+      </button>
+    </div>
   </div>
 
-  <div *ngIf="loading" class="loading-container">
-    <mat-spinner diameter="40"></mat-spinner>
-  </div>
-
-  <div *ngIf="error" class="error-container">
-    <mat-icon color="warn">error</mat-icon>
-    <p>{{ error }}</p>
-  </div>
-
-  <div *ngIf="!loading && !error" class="wallets-grid">
-    <mat-card *ngFor="let wallet of wallets" class="wallet-card">
-      <mat-card-header>
-        <mat-card-title>{{ wallet.name }}</mat-card-title>
-        <mat-card-subtitle>Wallet ID: {{ wallet.id }}</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="balance">
-          <span class="label">Balance:</span>
-          <span class="amount">{{ wallet.balance }}</span>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div
+      *ngFor="let wallet of wallets"
+      class="bg-white rounded-lg shadow-md p-4"
+    >
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <h2 class="text-xl font-semibold">{{ wallet.name }}</h2>
+          <p class="text-sm text-gray-500">{{ wallet.type }}</p>
         </div>
-        <div class="address">
-          <span class="label">Address:</span>
-          <span class="value">{{ wallet.address }}</span>
-        </div>
-      </mat-card-content>
-      <mat-card-actions>
         <button
-          mat-button
+          mat-icon-button
           color="primary"
-          [routerLink]="['/wallets', wallet.id]"
+          (click)="openSendDialog(wallet)"
         >
-          View Details
+          <mat-icon>send</mat-icon>
         </button>
-      </mat-card-actions>
-    </mat-card>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-gray-600">Address:</span>
+          <span class="font-mono text-sm">{{ wallet.address }}</span>
+        </div>
+
+        <div class="flex justify-between items-center">
+          <span class="text-gray-600">Balance:</span>
+          <div class="flex items-center">
+            <span class="font-semibold">{{ wallet.balance }}</span>
+            <span class="ml-2 text-sm text-gray-500">{{ wallet.type }}</span>
+            <mat-spinner
+              *ngIf="refreshing"
+              diameter="20"
+              class="ml-2"
+            ></mat-spinner>
+          </div>
+        </div>
+
+        <div *ngIf="wallet.tokens?.length" class="mt-4">
+          <h3 class="text-sm font-semibold mb-2">Tokens:</h3>
+          <div
+            *ngFor="let token of wallet.tokens"
+            class="flex justify-between items-center py-1"
+          >
+            <span class="text-sm">{{ token.symbol }}</span>
+            <div class="flex items-center">
+              <span class="text-sm font-semibold">{{ token.balance }}</span>
+              <span class="ml-2 text-sm text-gray-500"
+                >${{ formatPrice(token.price) }}</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
