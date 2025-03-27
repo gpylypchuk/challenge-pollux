@@ -6,12 +6,13 @@ import {
   CreateWalletDto,
   WalletTransaction,
 } from './interfaces/wallet.interface';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WalletService {
-  private apiUrl = 'http://localhost:3000/api/wallets';
+  private apiUrl = `${environment.apiUrl}/wallets`;
 
   constructor(private http: HttpClient) {}
 

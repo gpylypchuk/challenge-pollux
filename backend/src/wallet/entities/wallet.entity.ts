@@ -6,6 +6,11 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export enum WalletType {
+  BTC = 'BTC',
+  ETH = 'ETH',
+}
+
 @Entity()
 export class Wallet {
   @PrimaryGeneratedColumn()
@@ -14,8 +19,11 @@ export class Wallet {
   @Column()
   name: string;
 
-  @Column()
-  type: 'BTC' | 'ETH';
+  @Column({
+    type: 'enum',
+    enum: WalletType,
+  })
+  type: WalletType;
 
   @Column()
   address: string;
@@ -23,14 +31,15 @@ export class Wallet {
   @Column()
   encryptedPrivateKey: string;
 
-  @Column()
-  privateKeyIv: string;
-
-  @Column()
+  @Column({ nullable: true })
   encryptedMnemonic: string;
 
-  @Column()
-  mnemonicIv: string;
+  @Column('jsonb', { nullable: true })
+  tokens: Array<{
+    symbol: string;
+    balance: string;
+    price: number;
+  }>;
 
   @CreateDateColumn()
   createdAt: Date;

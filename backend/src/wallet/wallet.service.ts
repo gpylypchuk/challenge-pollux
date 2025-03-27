@@ -6,9 +6,11 @@ import { BIP32Factory } from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Wallet } from './entities/wallet.entity';
+import { Wallet, WalletType } from './entities/wallet.entity';
 import * as crypto from 'crypto';
 import { WebSocket } from 'ws';
+import { ConfigService } from '@nestjs/config';
+import { CreateWalletDto } from './dto/create-wallet.dto';
 
 /**
  * Service responsible for managing cryptocurrency wallets.
@@ -20,27 +22,17 @@ export class WalletService {
   private readonly logger = new Logger(WalletService.name);
   // Initialize BIP32 for HD wallet support
   private bip32 = BIP32Factory(ecc);
-  // Encryption key for sensitive data, should be set via environment variable
-  private readonly encryptionKey =
-    process.env.ENCRYPTION_KEY || 'your-secure-encryption-key';
-  // Using AES-256-GCM for authenticated encryption
-  private readonly encryptionAlgorithm = 'aes-256-gcm';
   // WebSocket connections for real-time blockchain updates
   private btcWs: WebSocket | null = null;
   private ethWs: WebSocket | null = null;
+  private readonly useTestNetworks = process.env.USE_TEST_NETWORKS === 'true';
 
   constructor(
     @InjectRepository(Wallet)
     private walletRepository: Repository<Wallet>,
+    private configService: ConfigService,
   ) {
-    // Initialize WebSocket connections only if API keys are available
-    if (process.env.BLOCKCYPHER_API_KEY || process.env.INFURA_API_KEY) {
-      this.initializeWebSockets();
-    } else {
-      this.logger.warn(
-        'WebSocket connections not initialized: Missing API keys',
-      );
-    }
+    this.initializeWebSockets();
   }
 
   /**
@@ -49,29 +41,63 @@ export class WalletService {
    */
   private initializeWebSockets() {
     try {
-      // Initialize Bitcoin WebSocket only if API key is available
-      if (process.env.BLOCKCYPHER_API_KEY) {
-        this.btcWs = new WebSocket('wss://socket.blockcypher.com/v1/btc/main');
-        this.btcWs.on('open', () => {
-          this.logger.log('Bitcoin WebSocket connected');
-          this.btcWs?.send(JSON.stringify({ event: 'tx-confirmation' }));
-        });
-        this.btcWs.on('error', (error) => {
-          this.logger.error('Bitcoin WebSocket error:', error);
-        });
+      // Initialize Bitcoin WebSocket
+      if (this.useTestNetworks) {
+        if (process.env.BLOCKCYPHER_TESTNET_API_KEY) {
+          this.btcWs = new WebSocket(
+            'wss://socket.blockcypher.com/v1/btc/test3',
+          );
+          this.btcWs.on('open', () => {
+            this.logger.log('Bitcoin Testnet WebSocket connected');
+            this.btcWs?.send(JSON.stringify({ event: 'tx-confirmation' }));
+          });
+          this.btcWs.on('error', (error) => {
+            this.logger.error('Bitcoin Testnet WebSocket error:', error);
+          });
+        }
+      } else {
+        if (process.env.BLOCKCYPHER_API_KEY) {
+          this.btcWs = new WebSocket(
+            'wss://socket.blockcypher.com/v1/btc/main',
+          );
+          this.btcWs.on('open', () => {
+            this.logger.log('Bitcoin Mainnet WebSocket connected');
+            this.btcWs?.send(JSON.stringify({ event: 'tx-confirmation' }));
+          });
+          this.btcWs.on('error', (error) => {
+            this.logger.error('Bitcoin Mainnet WebSocket error:', error);
+          });
+        }
       }
 
-      // Initialize Ethereum WebSocket only if API key is available
-      if (process.env.INFURA_API_KEY) {
-        this.ethWs = new WebSocket(
-          `wss://mainnet.infura.io/ws/v3/${process.env.INFURA_API_KEY}`,
-        );
-        this.ethWs.on('open', () => {
-          this.logger.log('Ethereum WebSocket connected');
-        });
-        this.ethWs.on('error', (error) => {
-          this.logger.error('Ethereum WebSocket error:', error);
-        });
+      // Initialize Ethereum WebSocket
+      if (this.useTestNetworks) {
+        if (process.env.INFURA_SEPOLIA_API_KEY) {
+          this.ethWs = new WebSocket(
+            `wss://sepolia.infura.io/ws/v3/${process.env.INFURA_SEPOLIA_API_KEY}`,
+          );
+          this.ethWs.on('open', () => {
+            this.logger.log('Ethereum Sepolia Testnet WebSocket connected');
+          });
+          this.ethWs.on('error', (error) => {
+            this.logger.error(
+              'Ethereum Sepolia Testnet WebSocket error:',
+              error,
+            );
+          });
+        }
+      } else {
+        if (process.env.INFURA_API_KEY) {
+          this.ethWs = new WebSocket(
+            `wss://mainnet.infura.io/ws/v3/${process.env.INFURA_API_KEY}`,
+          );
+          this.ethWs.on('open', () => {
+            this.logger.log('Ethereum Mainnet WebSocket connected');
+          });
+          this.ethWs.on('error', (error) => {
+            this.logger.error('Ethereum Mainnet WebSocket error:', error);
+          });
+        }
       }
     } catch (error) {
       this.logger.error('Failed to initialize WebSocket connections:', error);
@@ -81,136 +107,98 @@ export class WalletService {
   /**
    * Encrypts sensitive data using AES-256-GCM encryption.
    * @param data - The data to encrypt
-   * @returns Object containing encrypted data and initialization vector
+   * @returns Encrypted data in the format: iv:encryptedData:authTag
    */
-  private encryptData(data: string): { encryptedData: string; iv: string } {
-    // Generate a random initialization vector
-    const iv = crypto.randomBytes(16);
-    // Create cipher with AES-256-GCM algorithm
-    const cipher = crypto.createCipheriv(
-      this.encryptionAlgorithm,
-      Buffer.from(this.encryptionKey),
-      iv,
+  private encryptData(data: string): string {
+    const iv = crypto.randomBytes(12);
+    const key = Buffer.from(
+      this.configService.get<string>('ENCRYPTION_KEY'),
+      'hex',
     );
-    // Encrypt the data
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    // Get the authentication tag
     const authTag = cipher.getAuthTag();
-    // Return encrypted data with IV and auth tag
-    return {
-      encryptedData: encrypted + authTag.toString('hex'),
-      iv: iv.toString('hex'),
-    };
+    return `${iv.toString('hex')}:${encrypted}:${authTag.toString('hex')}`;
   }
 
   /**
    * Decrypts data that was encrypted using encryptData.
    * @param encryptedData - The encrypted data to decrypt
-   * @param iv - The initialization vector used for encryption
    * @returns The decrypted data
    */
-  private decryptData(encryptedData: string, iv: string): string {
-    // Create decipher with AES-256-GCM algorithm
-    const decipher = crypto.createDecipheriv(
-      this.encryptionAlgorithm,
-      Buffer.from(this.encryptionKey),
-      Buffer.from(iv, 'hex'),
+  private decryptData(encryptedData: string): string {
+    const [ivHex, encrypted, authTagHex] = encryptedData.split(':');
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+    const key = Buffer.from(
+      this.configService.get<string>('ENCRYPTION_KEY'),
+      'hex',
     );
-    // Extract and set the authentication tag
-    const authTag = Buffer.from(encryptedData.slice(-32), 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(authTag);
-    // Decrypt the data
-    let decrypted = decipher.update(encryptedData.slice(0, -32), 'hex', 'utf8');
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
   }
 
   /**
-   * Creates a new cryptocurrency wallet.
-   * Generates a random mnemonic and derives the wallet using BIP32.
-   * Supports both Bitcoin and Ethereum wallets.
-   *
-   * @param name - The name for the wallet
-   * @param type - The type of wallet ('BTC' or 'ETH')
-   * @returns Object containing the wallet's public information
+   * Creates a new wallet with the specified type and name.
+   * Generates necessary keys and addresses based on wallet type.
    */
-  async createWallet(
-    name: string,
-    type: 'BTC' | 'ETH',
-  ): Promise<{
-    id: number;
-    name: string;
-    type: string;
-    address: string;
-  }> {
-    // Generate a random mnemonic (seed phrase)
-    const mnemonic = bip39.generateMnemonic();
+  async createWallet(createWalletDto: CreateWalletDto): Promise<Wallet> {
+    try {
+      // Generate mnemonic and derive keys
+      const mnemonic = bip39.generateMnemonic();
+      const seed = await bip39.mnemonicToSeed(mnemonic);
+      const root = this.bip32.fromSeed(seed);
 
-    // Generate seed from mnemonic
-    const seed = await bip39.mnemonicToSeed(mnemonic);
+      let address: string;
+      let privateKey: string;
 
-    let address: string;
-    let privateKey: string;
+      // Generate address and private key based on wallet type
+      if (createWalletDto.type === WalletType.BTC) {
+        const child = root.derivePath("m/84'/0'/0'/0/0");
+        const { address: btcAddress } = bitcoin.payments.p2wpkh({
+          pubkey: Buffer.from(child.publicKey),
+        });
+        address = btcAddress!;
+        privateKey = child.privateKey!.toString();
+      } else {
+        // ETH wallet generation logic here
+        const child = root.derivePath("m/44'/60'/0'/0/0");
+        const pubKeyBuffer = Buffer.from(child.publicKey);
+        address = '0x' + pubKeyBuffer.toString('hex');
+        privateKey = Buffer.from(child.privateKey!).toString('hex');
+      }
 
-    if (type === 'BTC') {
-      // Create Bitcoin wallet using BIP32
-      const network = bitcoin.networks.bitcoin;
-      // Derive root key from seed
-      const root = this.bip32.fromSeed(seed, network);
-      // Derive child key using BIP44 path
-      const path = "m/44'/0'/0'/0/0";
-      const child = root.derivePath(path);
+      // Encrypt sensitive data
+      const encryptedPrivateKey = this.encryptData(privateKey);
+      const encryptedMnemonic = this.encryptData(mnemonic);
 
-      // Generate Bitcoin address from public key
-      const { address: btcAddress } = bitcoin.payments.p2pkh({
-        pubkey: Buffer.from(child.publicKey),
-        network,
+      // Create and save wallet
+      const wallet = this.walletRepository.create({
+        name: createWalletDto.name,
+        type: createWalletDto.type,
+        address,
+        encryptedPrivateKey,
+        encryptedMnemonic,
+        tokens: [],
       });
 
-      address = btcAddress;
-      privateKey = child.toWIF();
-    } else {
-      // Create Ethereum wallet
-      // Generate private key from seed
-      const privateKeyBuffer = ethUtil.keccak256(seed.slice(0, 32));
-      const privateKeyHex = privateKeyBuffer.toString('hex');
-      // Derive public key from private key
-      const publicKey = ethUtil.privateToPublic(privateKeyBuffer);
-      // Generate Ethereum address from public key
-      const addressBuffer = ethUtil.pubToAddress(publicKey);
-      address = ethUtil.toChecksumAddress('0x' + addressBuffer.toString('hex'));
-      privateKey = '0x' + privateKeyHex;
+      const savedWallet = await this.walletRepository.save(wallet);
+
+      // Subscribe to address updates
+      this.subscribeToAddressUpdates(savedWallet);
+
+      return savedWallet;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create wallet: ${error.message}`,
+        error.stack,
+      );
+      throw error;
     }
-
-    // Encrypt sensitive data before storage
-    const encryptedPrivateKey = this.encryptData(privateKey);
-    const encryptedMnemonic = this.encryptData(mnemonic);
-
-    // Create wallet entity with encrypted data
-    const wallet = this.walletRepository.create({
-      name,
-      type,
-      address,
-      encryptedPrivateKey: encryptedPrivateKey.encryptedData,
-      privateKeyIv: encryptedPrivateKey.iv,
-      encryptedMnemonic: encryptedMnemonic.encryptedData,
-      mnemonicIv: encryptedMnemonic.iv,
-    });
-
-    // Save to database
-    const savedWallet = await this.walletRepository.save(wallet);
-
-    // Subscribe to blockchain updates for this wallet
-    this.subscribeToAddressUpdates(savedWallet);
-
-    // Return only public data
-    return {
-      id: savedWallet.id,
-      name: savedWallet.name,
-      type: savedWallet.type,
-      address: savedWallet.address,
-    };
   }
 
   /**
@@ -246,23 +234,20 @@ export class WalletService {
   }
 
   /**
+   * Retrieves all wallets from the database.
+   * @returns Array of all wallets
+   */
+  async getWallets(): Promise<Wallet[]> {
+    return this.walletRepository.find();
+  }
+
+  /**
    * Retrieves wallet information including balance and token holdings.
    *
    * @param id - The ID of the wallet to retrieve
-   * @returns Object containing wallet information and balances
+   * @returns The wallet entity with updated balances
    */
-  async getWallet(id: number): Promise<{
-    id: number;
-    name: string;
-    type: string;
-    address: string;
-    balance: string;
-    tokens: Array<{
-      symbol: string;
-      balance: string;
-      price: number;
-    }>;
-  }> {
+  async getWallet(id: number): Promise<Wallet> {
     // Find wallet in database
     const wallet = await this.walletRepository.findOne({ where: { id } });
     if (!wallet) {
@@ -278,14 +263,9 @@ export class WalletService {
         ? await this.fetchERC20Balances(wallet.address)
         : [];
 
-    return {
-      id: wallet.id,
-      name: wallet.name,
-      type: wallet.type,
-      address: wallet.address,
-      balance,
-      tokens,
-    };
+    // Update wallet with current balances
+    wallet.tokens = tokens;
+    return wallet;
   }
 
   /**
@@ -302,17 +282,26 @@ export class WalletService {
   ): Promise<string> {
     try {
       if (type === 'BTC') {
-        // Use BlockCypher API for Bitcoin balance
+        const network = this.useTestNetworks ? 'test3' : 'main';
+        const apiKey = this.useTestNetworks
+          ? process.env.BLOCKCYPHER_TESTNET_API_KEY
+          : process.env.BLOCKCYPHER_API_KEY;
+
         const response = await fetch(
-          `https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`,
+          `https://api.blockcypher.com/v1/btc/${network}/addrs/${address}/balance${
+            apiKey ? `?token=${apiKey}` : ''
+          }`,
         );
         const data = await response.json();
-        // Convert satoshis to BTC
         return (data.balance / 100000000).toString();
       } else {
-        // Use Infura API for Ethereum balance
+        const network = this.useTestNetworks ? 'sepolia' : 'mainnet';
+        const apiKey = this.useTestNetworks
+          ? process.env.INFURA_SEPOLIA_API_KEY
+          : process.env.INFURA_API_KEY;
+
         const response = await fetch(
-          'https://mainnet.infura.io/v3/YOUR-PROJECT-ID',
+          `https://${network}.infura.io/v3/${apiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -324,11 +313,10 @@ export class WalletService {
           },
         );
         const data = await response.json();
-        // Convert wei to ETH
         return (parseInt(data.result, 16) / 1e18).toString();
       }
     } catch (error) {
-      console.error('Error fetching balance:', error);
+      this.logger.error('Error fetching balance:', error);
       return '0.00';
     }
   }
@@ -377,10 +365,7 @@ export class WalletService {
     }
 
     // Decrypt private key for transaction signing
-    const privateKey = this.decryptData(
-      wallet.encryptedPrivateKey,
-      wallet.privateKeyIv,
-    );
+    const privateKey = this.decryptData(wallet.encryptedPrivateKey);
 
     // Check if wallet has sufficient balance
     const balance = await this.fetchBalance(wallet.address, wallet.type);
