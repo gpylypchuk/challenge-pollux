@@ -1,8 +1,9 @@
 export interface Wallet {
   id: number;
   name: string;
-  balance: string;
+  type: 'BTC' | 'ETH';
   address: string;
+  balance: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,11 +14,15 @@ export interface CreateWalletDto {
 }
 
 export interface WalletTransaction {
-  id: number;
-  walletId: number;
-  type: 'SEND' | 'RECEIVE';
+  id: string;
+  status: 'pending' | 'completed' | 'failed';
   amount: string;
-  address: string;
-  timestamp: Date;
-  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  recipientAddress: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SendTransactionDto {
+  amount: string;
+  recipientAddress: string;
 }
